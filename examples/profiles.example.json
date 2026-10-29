@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "active_id": "headquarters",
+  "shared": {
+    "user_name": "developer_user",
+    "password": "",
+    "dns_servers": "10.0.0.10, 10.0.0.11",
+    "search_domains": "corp.internal, company.com",
+    "tunnel_type": "ssl",
+    "login_type": "vpn",
+    "ignore_server_cert": true
+  },
+  "connections": [
+    {
+      "id": "headquarters",
+      "name": "Sede Central (HQ)",
+      "gateway": "203.0.113.10",
+      "description": "Gateway principal, servidores de producción y bases de datos",
+      "expected_subnet": "10.100.0.0/16",
+      "use_custom_dns": false,
+      "custom_dns": "",
+      "custom_routes": ["10.100.0.0/16", "10.200.0.0/16"]
+    },
+    {
+      "id": "branch_office",
+      "name": "Sede Alterna (Sucursal)",
+      "gateway": "198.51.100.25",
+      "description": "Gateway secundario para contingencia y desarrollo",
+      "expected_subnet": "10.150.0.0/16",
+      "use_custom_dns": true,
+      "custom_dns": "10.150.0.5, 10.0.0.10",
+      "custom_routes": ["10.150.0.0/16"]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.2" />
+    </linearGradient>
+  </defs>
+  <!-- Background Shield -->
+  <path d="M64 12 L108 28 C108 72 84 104 64 116 C44 104 20 72 20 28 Z" fill="url(#shieldGrad)" stroke="#38bdf8" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Inner Glow Path -->
+  <path d="M64 22 L98 35 C98 70 78 97 64 106 C50 97 30 70 30 35 Z" fill="url(#glowGrad)" opacity="0.4"/>
+  <!-- Keyhole / Network Icon -->
+  <circle cx="64" cy="54" r="14" fill="#ffffff" />
+  <path d="M56 64 L72 64 L76 86 L52 86 Z" fill="#ffffff" />
+  <!-- Circuit Nodes -->
+  <circle cx="64" cy="54" r="5" fill="#0369a1" />
+  <circle cx="42" cy="74" r="4" fill="#38bdf8" />
+  <circle cx="86" cy="74" r="4" fill="#38bdf8" />
+  <line x1="52" y1="74" x2="42" y2="74" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+  <line x1="76" y1="74" x2="86" y2="74" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snx-manager"
+version = "1.0.0"
+description = "Modern Check Point SNX VPN Client Manager with CLI, TUI, Policy-Based Routing, and PyQt6 GUI."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "SNX Open Source Community" }
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications :: Qt",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Networking",
+    "Topic :: Security :: Cryptography",
+]
+dependencies = []
+
+[project.optional-dependencies]
+gui = [
+    "PyQt6>=6.4.0",
+]
+keyring = [
+    "keyring>=24.0.0",
+]
+all = [
+    "PyQt6>=6.4.0",
+    "keyring>=24.0.0",
+]
+
+[project.scripts]
+snx-manager = "snx_manager.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["snx_manager*"]

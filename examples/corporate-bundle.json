@@ -1,0 +1,32 @@
+{
+  "bundle_version": "1.0.0",
+  "organization": "Example Corporation",
+  "generated_at": "2026-10-29T00:00:00Z",
+  "shared": {
+    "dns_servers": "10.0.0.10, 10.0.0.11",
+    "search_domains": "corp.internal",
+    "tunnel_type": "ssl",
+    "login_type": "vpn",
+    "ignore_server_cert": true
+  },
+  "connections": [
+    {
+      "id": "hq",
+      "name": "Datacenter Central",
+      "gateway": "203.0.113.10",
+      "description": "Acceso a clústeres Kubernetes y bases de datos",
+      "expected_subnet": "10.100.0.0/16",
+      "use_custom_dns": false,
+      "custom_dns": ""
+    },
+    {
+      "id": "staging",
+      "name": "Entorno Staging",
+      "gateway": "198.51.100.25",
+      "description": "Pruebas de integración continua y despliegues",
+      "expected_subnet": "10.150.0.0/16",
+      "use_custom_dns": false,
+      "custom_dns": ""
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+[Unit]
+Description=SNX Check Point VPN Tunnel - Perfil %I
+After=network-online.target systemd-resolved.service
+Wants=network-online.target
+Documentation=https://github.com/snx-vpn-manager/snx-vpn-manager
+
+[Service]
+Type=simple
+# Ejecutar con comando directo gestionado
+ExecStart=/usr/local/bin/snx-manager daemon --profile %I
+ExecStop=/usr/local/bin/snx-manager disconnect
+ExecStopPost=/usr/local/bin/snx-manager cleanup
+
+# Resiliencia y auto-recuperación
+Restart=on-failure
+RestartSec=5s
+
+# Privilegios acotados
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+
+# Protección del sistema
+ProtectSystem=strict
+ReadWritePaths=/run /var/log /etc/snx-rs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

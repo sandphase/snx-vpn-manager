@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=SNX VPN Manager
+GenericName=Gestor VPN Check Point
+Comment=Gestor de perfiles y conexiones VPN Check Point (snx-rs)
+Exec=snx-manager
+Icon=snx-manager
+Terminal=false
+Type=Application
+Categories=Network;Security;RemoteAccess;
+Keywords=vpn;checkpoint;snx;remote;corporate;
+StartupNotify=true
