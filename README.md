@@ -61,7 +61,7 @@ Connecting to Check Point Firewalls / Security Gateways on modern Linux systems 
 Clone this repository and run the automated installer:
 
 ```bash
-git clone https://github.com/your-username/snx-vpn-manager.git
+git clone https://github.com/sandphase/snx-vpn-manager.git
 cd snx-vpn-manager
 sudo ./install.sh
 ```
