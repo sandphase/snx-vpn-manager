@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 snx_manager.core.doctor
-Motor de diagnóstico pre-vuelo (Pre-flight Checks) para auditoría de dependencias,
-módulos del kernel, colisiones de red con Docker y permisos del sistema.
+Pre-flight diagnostics engine for auditing dependencies,
+kernel modules, Docker network bridge collisions, and system permissions.
 """
 
 import os
@@ -15,7 +15,7 @@ from snx_manager.core.dns import DnsManager
 
 
 def run_diagnostics(vpn_subnets: List[str] = None) -> Dict[str, Any]:
-    """Ejecuta una batería completa de pruebas del sistema y retorna el reporte."""
+    """Runs a complete test suite of system dependencies and returns the diagnostic report."""
     report = {
         "snx_rs_installed": False,
         "snx_rs_version": "",
@@ -28,7 +28,7 @@ def run_diagnostics(vpn_subnets: List[str] = None) -> Dict[str, Any]:
         "errors": []
     }
 
-    # 1. Comprobar binario snx-rs
+    # 1. Check snx-rs binary
     snx_path = shutil.which("snx-rs")
     if snx_path:
         report["snx_rs_installed"] = True
@@ -36,96 +36,95 @@ def run_diagnostics(vpn_subnets: List[str] = None) -> Dict[str, Any]:
         if v_check.returncode == 0:
             report["snx_rs_version"] = v_check.stdout.strip()
     else:
-        report["errors"].append("El cliente 'snx-rs' no está instalado en el sistema ($PATH).")
+        report["errors"].append("The 'snx-rs' client is not installed in system ($PATH).")
 
-    # 2. Comprobar dispositivo TUN del kernel
+    # 2. Check kernel TUN device
     if os.path.exists("/dev/net/tun"):
         report["tun_device_ready"] = True
     else:
-        # Intentar cargar módulo
         run_cmd(["modprobe", "tun"])
         if os.path.exists("/dev/net/tun"):
             report["tun_device_ready"] = True
         else:
-            report["errors"].append("El dispositivo del kernel /dev/net/tun no está disponible.")
+            report["errors"].append("Kernel device /dev/net/tun is unavailable.")
 
-    # 3. Comprobar utilidades de red
+    # 3. Check networking utilities
     if shutil.which("ip"):
         report["iproute2_available"] = True
     else:
-        report["errors"].append("Falta el paquete esencial 'iproute2' ('ip').")
+        report["errors"].append("Essential package 'iproute2' ('ip') is missing.")
 
-    # 4. Gestor de DNS
+    # 4. DNS manager
     dns_mgr = DnsManager()
     report["dns_manager"] = dns_mgr.backend
 
-    # 5. Colisiones con Docker
+    # 5. Docker collisions
     if vpn_subnets:
         collisions = detect_docker_collisions(vpn_subnets)
         if collisions:
             for v_sub, iface in collisions:
                 report["docker_collisions"].append({"vpn_subnet": v_sub, "docker_interface": iface})
                 report["warnings"].append(
-                    f"Colisión detectada: Subred VPN {v_sub} solapa con la interfaz de Docker '{iface}'."
+                    f"Collision detected: VPN subnet {v_sub} overlaps with local Docker interface '{iface}'."
                 )
 
-    # 6. Permisos de elevación
+    # 6. Elevation permissions
     sudo_res = subprocess.run(["sudo", "-n", "true"], capture_output=True)
     report["sudo_passwordless"] = (sudo_res.returncode == 0)
     if not report["sudo_passwordless"]:
         if not shutil.which("pkexec"):
-            report["warnings"].append("Ni 'sudo -n' ni 'pkexec' están disponibles. Se requerirá contraseña interactiva.")
+            report["warnings"].append("Neither 'sudo -n' nor 'pkexec' available. Interactive authentication required.")
 
     return report
 
 
 def format_doctor_report(report: Dict[str, Any]) -> str:
-    """Genera una vista amigable y formateada para la terminal."""
+    """Generates a human-friendly formatted view for the terminal."""
     lines = [
         "============================================================",
-        "          🩺 DIAGNÓSTICO DEL SISTEMA (snx-manager doctor)    ",
+        "          🩺 SYSTEM DIAGNOSTICS (snx-manager doctor)        ",
         "============================================================"
     ]
 
     # snx-rs
     if report["snx_rs_installed"]:
-        lines.append(f"  [OK] Cliente snx-rs: Presente ({report['snx_rs_version']})")
+        lines.append(f"  [OK] snx-rs client: Present ({report['snx_rs_version']})")
     else:
-        lines.append("  [FAIL] Cliente snx-rs: NO instalado")
+        lines.append("  [FAIL] snx-rs client: NOT installed")
 
     # Kernel TUN
     if report["tun_device_ready"]:
-        lines.append("  [OK] Dispositivo Kernel: /dev/net/tun disponible")
+        lines.append("  [OK] Kernel Device: /dev/net/tun available")
     else:
-        lines.append("  [FAIL] Dispositivo Kernel: /dev/net/tun NO disponible")
+        lines.append("  [FAIL] Kernel Device: /dev/net/tun NOT available")
 
     # iproute2
     if report["iproute2_available"]:
-        lines.append("  [OK] Herramientas de Red: iproute2 presente")
+        lines.append("  [OK] Network Tools: iproute2 present")
     else:
-        lines.append("  [FAIL] Herramientas de Red: iproute2 ausente")
+        lines.append("  [FAIL] Network Tools: iproute2 missing")
 
     # DNS
-    lines.append(f"  [INFO] Subsistema DNS activo: {report['dns_manager']}")
+    lines.append(f"  [INFO] Active DNS Subsystem: {report['dns_manager']}")
 
-    # Elevación
+    # Elevation
     if report["sudo_passwordless"]:
-        lines.append("  [OK] Privilegios Root: sudo NOPASSWD configurado (Operación transparente)")
+        lines.append("  [OK] Root Privileges: sudo NOPASSWD configured (Transparent operation)")
     else:
-        lines.append("  [INFO] Privilegios Root: Elevación interactiva mediante PolicyKit (pkexec) o sudo")
+        lines.append("  [INFO] Root Privileges: Interactive elevation via PolicyKit (pkexec) or sudo")
 
-    # Colisiones Docker
+    # Docker collisions
     if report["docker_collisions"]:
-        lines.append("\n  [!] ADVERTENCIA: Se detectaron colisiones de enrutamiento con Docker:")
+        lines.append("\n  [!] WARNING: Docker subnet routing collisions detected:")
         for c in report["docker_collisions"]:
-            lines.append(f"      • Subred {c['vpn_subnet']} compite con el bridge local '{c['docker_interface']}'")
-        lines.append("      (El gestor inyectará rutas de host /32 automáticamente para mitigar esto).")
+            lines.append(f"      • Subnet {c['vpn_subnet']} competes with local bridge '{c['docker_interface']}'")
+        lines.append("      (Manager will inject /32 host routes automatically to mitigate this).")
 
     lines.append("============================================================")
 
     if report["errors"]:
-        lines.append(f"ESTADO GENERAL: ❌ Se detectaron {len(report['errors'])} error(es) crítico(s).")
+        lines.append(f"OVERALL STATUS: ❌ {len(report['errors'])} critical error(s) detected.")
     else:
-        lines.append("ESTADO GENERAL: ✅ El sistema está listo para operar.")
+        lines.append("OVERALL STATUS: ✅ System is ready to operate.")
 
     return "\n".join(lines)

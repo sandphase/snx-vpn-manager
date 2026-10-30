@@ -13,9 +13,9 @@
   "connections": [
     {
       "id": "headquarters",
-      "name": "Sede Central (HQ)",
+      "name": "Headquarters (HQ)",
       "gateway": "203.0.113.10",
-      "description": "Gateway principal, servidores de producción y bases de datos",
+      "description": "Primary corporate gateway, production servers, and databases",
       "expected_subnet": "10.100.0.0/16",
       "use_custom_dns": false,
       "custom_dns": "",
@@ -23,9 +23,9 @@
     },
     {
       "id": "branch_office",
-      "name": "Sede Alterna (Sucursal)",
+      "name": "Branch Office",
       "gateway": "198.51.100.25",
-      "description": "Gateway secundario para contingencia y desarrollo",
+      "description": "Secondary gateway for contingency and development",
       "expected_subnet": "10.150.0.0/16",
       "use_custom_dns": true,
       "custom_dns": "10.150.0.5, 10.0.0.10",

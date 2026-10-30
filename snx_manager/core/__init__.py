@@ -1,6 +1,6 @@
 """
 snx_manager.core
-Módulos esenciales del motor VPN agnósticos de la interfaz de usuario.
+Core VPN engine modules agnostic of the user interface.
 """
 
 from snx_manager.core.config import load_config, save_config, get_connection_by_id, export_bundle, import_bundle

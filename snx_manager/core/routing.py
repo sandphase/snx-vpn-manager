@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 snx_manager.core.routing
-Control de enrutamiento del kernel, Policy-Based Routing (PBR), prevención de
-colisiones con bridges de Docker y limpieza determinista de interfaces y estados XFRM.
+Kernel routing management, Policy-Based Routing (PBR), prevention of
+collisions with Docker bridges, and deterministic cleanup of interfaces and XFRM states.
 """
 
 import subprocess
@@ -13,7 +13,7 @@ from typing import List, Tuple, Optional
 
 
 def run_cmd(args: List[str], check: bool = False, capture: bool = True) -> subprocess.CompletedProcess:
-    """Ejecuta un comando de sistema sin shell para prevenir inyecciones."""
+    """Executes a system command without shell to prevent command injection."""
     try:
         return subprocess.run(args, capture_output=capture, text=True, check=check)
     except Exception as e:
@@ -21,8 +21,7 @@ def run_cmd(args: List[str], check: bool = False, capture: bool = True) -> subpr
 
 
 def run_root_cmd(args: List[str]) -> subprocess.CompletedProcess:
-    """Ejecuta comando con privilegios elevados utilizando sudo si está disponible sin clave o pkexec."""
-    # Verificar si sudo funciona sin pedir contraseña
+    """Executes command with elevated privileges using passwordless sudo or pkexec."""
     sudo_check = subprocess.run(["sudo", "-n", "true"], capture_output=True)
     if sudo_check.returncode == 0:
         return run_cmd(["sudo"] + args)
@@ -30,7 +29,7 @@ def run_root_cmd(args: List[str]) -> subprocess.CompletedProcess:
 
 
 class RouteManager:
-    """Administrador transaccional de rutas del kernel."""
+    """Transactional kernel routing manager."""
 
     def __init__(self, interface: str = "snx-vpn", routing_table: Optional[int] = 18000):
         self.interface = interface
@@ -39,17 +38,16 @@ class RouteManager:
 
     def inject_host_route_32(self, ip_str: str) -> bool:
         """
-        Inyecta una ruta de host /32 específica para evitar secuestro de tráfico
-        por puentes locales de Docker (RFC 1918 172.16.0.0/12).
+        Injects a specific /32 host route to prevent traffic hijacking
+        by local Docker bridge networks (RFC 1918 172.16.0.0/12).
         """
         clean_ip = ip_str.strip().split("/")[0]
         try:
-            # Validar que sea una IP válida
             ipaddress.ip_address(clean_ip)
         except ValueError:
             return False
 
-        # Inyectar en tabla principal para máxima precedencia de host
+        # Inject into main table for highest host-route precedence
         res = run_root_cmd(["ip", "route", "replace", f"{clean_ip}/32", "dev", self.interface])
         if res.returncode == 0:
             self.applied_routes.append(f"{clean_ip}/32")
@@ -57,15 +55,15 @@ class RouteManager:
         return False
 
     def remove_host_route_32(self, ip_str: str) -> bool:
-        """Elimina una ruta de host /32."""
+        """Removes a /32 host route."""
         clean_ip = ip_str.strip().split("/")[0]
         res = run_root_cmd(["ip", "route", "del", f"{clean_ip}/32", "dev", self.interface])
         return res.returncode == 0
 
     def setup_pbr_table(self, target_subnets: List[str]) -> bool:
         """
-        Configura Policy-Based Routing (PBR) en una tabla dedicada
-        para garantizar aislamiento entre la VPN y la red local del host.
+        Configures Policy-Based Routing (PBR) in a dedicated table
+        to guarantee strict isolation between VPN traffic and host local network.
         """
         if not self.routing_table:
             return False
@@ -74,20 +72,20 @@ class RouteManager:
             subnet = subnet.strip()
             if not subnet:
                 continue
-            # Añadir regla de enrutamiento hacia la tabla dedicada
+            # Add routing rule toward dedicated table
             run_root_cmd(["ip", "rule", "add", "to", subnet, "table", str(self.routing_table), "priority", "1000"])
-            # Añadir ruta en la tabla dedicada
+            # Add route in dedicated table
             run_root_cmd(["ip", "route", "replace", subnet, "dev", self.interface, "table", str(self.routing_table)])
 
         return True
 
     def cleanup_all(self, extra_ips: Optional[List[str]] = None):
         """
-        Limpieza integral y segura del estado de red:
-        1. Elimina rutas de host /32 registradas.
-        2. Purga reglas PBR de la tabla dedicada.
-        3. Purga estados y políticas huérfanas de IPsec XFRM para evitar caídas de red.
-        4. Elimina la interfaz virtual si quedó colgada.
+        Comprehensive and safe cleanup of network state:
+        1. Removes registered /32 host routes.
+        2. Flushes PBR rules from dedicated table.
+        3. Flushes lingering IPsec XFRM states/policies to prevent network locks.
+        4. Deletes virtual network interface if left open.
         """
         all_targets = list(self.applied_routes)
         if extra_ips:
@@ -96,23 +94,23 @@ class RouteManager:
         for ip in set(all_targets):
             self.remove_host_route_32(ip)
 
-        # Limpiar reglas PBR si existen
+        # Clean PBR rules
         if self.routing_table:
             run_root_cmd(["ip", "rule", "del", "table", str(self.routing_table)])
             run_root_cmd(["ip", "route", "flush", "table", str(self.routing_table)])
 
-        # Limpieza de interfaz
+        # Interface cleanup
         run_root_cmd(["ip", "link", "delete", self.interface])
 
-        # Purga de estados residuales de IPsec en el kernel
+        # Purge lingering IPsec states in kernel
         run_root_cmd(["ip", "xfrm", "state", "flush"])
         run_root_cmd(["ip", "xfrm", "policy", "flush"])
 
 
 def detect_docker_collisions(vpn_subnets: List[str]) -> List[Tuple[str, str]]:
     """
-    Detecta si alguna subred de la VPN colisiona con interfaces locales de Docker o Podman.
-    Retorna una lista de tuplas: (subred_vpn, nombre_interfaz_docker).
+    Detects if any VPN subnet collides with local Docker or Podman interfaces.
+    Returns a list of tuples: (vpn_subnet, docker_interface_name).
     """
     collisions = []
     res = run_cmd(["ip", "-4", "-o", "addr", "show"])

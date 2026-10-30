@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 snx_manager.gui
-Interfaz gráfica de usuario moderna construida en PyQt6 con tema oscuro (Dark Glassmorphism).
-Ofrece soporte para First-Run Wizard, tarjetas visuales, gestión de campos compartidos,
-importación/exportación de perfiles corporativos y diagnóstico integrado.
+Modern graphical user interface built with PyQt6 featuring Dark Glassmorphism.
+Provides support for First-Run Wizard, responsive visual cards, shared settings management,
+corporate profile bundle import/export, and integrated pre-flight diagnostics.
 """
 
 import sys
@@ -163,17 +163,17 @@ class AsyncWorker(QThread):
             self.finished_signal.emit(ok, msg)
         elif self.action == "disconnect":
             ok = self.backend.disconnect()
-            self.finished_signal.emit(ok, "VPN Desconectada correctamente" if ok else "Fallo al desconectar")
+            self.finished_signal.emit(ok, "VPN disconnected cleanly" if ok else "Failed to disconnect VPN")
 
 
 class ConnectionEditDialog(QDialog):
-    """Diálogo modal para crear o editar una sede VPN."""
+    """Modal dialog for creating or editing a VPN site connection."""
 
     def __init__(self, parent=None, connection=None, shared_dns=""):
         super().__init__(parent)
         self.connection = connection or {}
         self.shared_dns = shared_dns
-        self.setWindowTitle("Configurar Sede VPN" if connection else "Nueva Sede VPN")
+        self.setWindowTitle("Configure VPN Site" if connection else "New VPN Site")
         self.resize(560, 480)
         self.setStyleSheet(MODERN_STYLE)
         self.init_ui()
@@ -183,23 +183,23 @@ class ConnectionEditDialog(QDialog):
         layout.setSpacing(14)
         layout.setContentsMargins(26, 26, 26, 26)
 
-        title = QLabel("Detalles de la Conexión")
+        title = QLabel("Connection Details")
         title.setFont(QFont("sans-serif", 15, QFont.Weight.Bold))
         layout.addWidget(title)
 
-        layout.addWidget(QLabel("Nombre de la Sede o Conexión:"))
+        layout.addWidget(QLabel("Site or Connection Name:"))
         self.txt_name = QLineEdit(self.connection.get("name", ""))
-        self.txt_name.setPlaceholderText("Ej. Sede Central, Datacenter, Sucursal Norte...")
+        self.txt_name.setPlaceholderText("e.g. Headquarters, Datacenter, Branch Office...")
         layout.addWidget(self.txt_name)
 
-        layout.addWidget(QLabel("Dirección del Gateway (IP o Dominio FQDN):"))
+        layout.addWidget(QLabel("Gateway Address (IP or FQDN):"))
         self.txt_gateway = QLineEdit(self.connection.get("gateway", ""))
-        self.txt_gateway.setPlaceholderText("Ej. 203.0.113.10 o vpn.company.com")
+        self.txt_gateway.setPlaceholderText("e.g. 203.0.113.10 or vpn.company.com")
         layout.addWidget(self.txt_gateway)
 
-        layout.addWidget(QLabel("Descripción o Notas (Opcional):"))
+        layout.addWidget(QLabel("Description or Notes (Optional):"))
         self.txt_desc = QLineEdit(self.connection.get("description", ""))
-        self.txt_desc.setPlaceholderText("Ej. Servidores de producción y bases de datos")
+        self.txt_desc.setPlaceholderText("e.g. Primary production servers and database clusters")
         layout.addWidget(self.txt_desc)
 
         # DNS Box
@@ -215,13 +215,13 @@ class ConnectionEditDialog(QDialog):
         dns_box = QVBoxLayout(dns_frame)
         dns_box.setSpacing(10)
 
-        dns_label = QLabel("Configuración de Servidores DNS para esta Sede:")
+        dns_label = QLabel("DNS Server Configuration for this Site:")
         dns_label.setFont(QFont("sans-serif", 11, QFont.Weight.Bold))
         dns_label.setStyleSheet("color: #38bdf8;")
         dns_box.addWidget(dns_label)
 
-        self.rb_shared_dns = QRadioButton(f"Usar DNS Compartidos globales ({self.shared_dns or 'No configurados'})")
-        self.rb_custom_dns = QRadioButton("Asignar DNS específicos para esta conexión")
+        self.rb_shared_dns = QRadioButton(f"Use global shared DNS ({self.shared_dns or 'None configured'})")
+        self.rb_custom_dns = QRadioButton("Assign custom DNS servers for this connection")
 
         self.dns_group = QButtonGroup(self)
         self.dns_group.addButton(self.rb_shared_dns)
@@ -230,7 +230,7 @@ class ConnectionEditDialog(QDialog):
         dns_box.addWidget(self.rb_custom_dns)
 
         self.txt_custom_dns = QLineEdit(self.connection.get("custom_dns", ""))
-        self.txt_custom_dns.setPlaceholderText("Ej. 10.150.0.5, 10.0.0.10")
+        self.txt_custom_dns.setPlaceholderText("e.g. 10.150.0.5, 10.0.0.10")
         dns_box.addWidget(self.txt_custom_dns)
 
         if self.connection.get("use_custom_dns"):
@@ -245,11 +245,11 @@ class ConnectionEditDialog(QDialog):
 
         btn_box = QHBoxLayout()
         btn_box.addStretch()
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton("Cancel")
         btn_cancel.clicked.connect(self.reject)
         btn_box.addWidget(btn_cancel)
 
-        btn_save = QPushButton("Guardar Sede")
+        btn_save = QPushButton("Save Site")
         btn_save.setProperty("class", "primary")
         btn_save.clicked.connect(self.save_data)
         btn_box.addWidget(btn_save)
@@ -259,7 +259,7 @@ class ConnectionEditDialog(QDialog):
         name = self.txt_name.text().strip()
         gateway = self.txt_gateway.text().strip()
         if not name or not gateway:
-            QMessageBox.warning(self, "Campos requeridos", "Por favor completa el Nombre y la IP del Gateway.")
+            QMessageBox.warning(self, "Required Fields", "Please specify both Connection Name and Gateway Address.")
             return
 
         self.connection["name"] = name
@@ -270,12 +270,12 @@ class ConnectionEditDialog(QDialog):
         if "id" not in self.connection:
             import re
             slug = re.sub(r'[^a-zA-Z0-9_]', '', name.lower().replace(' ', '_'))
-            self.connection["id"] = slug or "sede_" + gateway.replace('.', '_')
+            self.connection["id"] = slug or "site_" + gateway.replace('.', '_')
         self.accept()
 
 
 class VpnManagerMainWindow(QMainWindow):
-    """Ventana principal del gestor visual."""
+    """Main window for the graphical VPN manager."""
 
     def __init__(self):
         super().__init__()
@@ -290,13 +290,13 @@ class VpnManagerMainWindow(QMainWindow):
         self.center_window()
         self.init_ui()
 
-        # Timer de sondeo de estado (cada 3s)
+        # Status polling timer (every 3 seconds)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.refresh_status)
         self.timer.start(3000)
         self.refresh_status()
 
-        # Comprobar si es primer inicio sin conexiones
+        # Check for first-time launch without profiles
         QTimer.singleShot(200, self.check_first_run)
 
     def center_window(self):
@@ -311,9 +311,9 @@ class VpnManagerMainWindow(QMainWindow):
         if not self.config.get("connections"):
             reply = QMessageBox.question(
                 self,
-                "Bienvenido a SNX VPN Manager",
-                "No tienes conexiones configuradas actualmente.\n\n"
-                "¿Deseas añadir tu primer Gateway VPN ahora?",
+                "Welcome to SNX VPN Manager",
+                "No VPN connection profiles are currently configured.\n\n"
+                "Would you like to add your first VPN Gateway profile now?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.Yes:
@@ -326,7 +326,7 @@ class VpnManagerMainWindow(QMainWindow):
         main_layout.setContentsMargins(24, 20, 24, 20)
         main_layout.setSpacing(14)
 
-        # Header Superior
+        # Header Bar
         header = QFrame()
         header.setObjectName("mainHeader")
         header.setStyleSheet("""
@@ -351,14 +351,14 @@ class VpnManagerMainWindow(QMainWindow):
         app_title.setStyleSheet("color: #ffffff; letter-spacing: -0.5px;")
         title_box.addWidget(app_title)
 
-        self.lbl_subtitle = QLabel("Gestor de perfiles y orquestador snx-rs • Atajos: [1-9] Conectar / [D] Desconectar / [Esc] Cerrar")
+        self.lbl_subtitle = QLabel("Profile manager & snx-rs orchestrator • Shortcuts: [1-9] Connect / [D] Disconnect / [Esc] Close")
         self.lbl_subtitle.setStyleSheet("color: #94a3b8; font-size: 12px; font-weight: 500;")
         title_box.addWidget(self.lbl_subtitle)
         header_layout.addLayout(title_box)
 
         header_layout.addStretch()
 
-        self.status_badge = QLabel("⚪ Verificando...")
+        self.status_badge = QLabel("⚪ Checking...")
         self.status_badge.setStyleSheet("""
             background-color: #1a2232;
             color: #94a3b8;
@@ -369,18 +369,18 @@ class VpnManagerMainWindow(QMainWindow):
         """)
         header_layout.addWidget(self.status_badge)
 
-        self.btn_disconnect = QPushButton("🔌 Desconectar (D)")
+        self.btn_disconnect = QPushButton("🔌 Disconnect (D)")
         self.btn_disconnect.setProperty("class", "danger")
         self.btn_disconnect.clicked.connect(self.do_disconnect)
         header_layout.addWidget(self.btn_disconnect)
 
-        self.btn_close = QPushButton("✕ Cerrar (Esc)")
+        self.btn_close = QPushButton("✕ Close (Esc)")
         self.btn_close.clicked.connect(self.close)
         header_layout.addWidget(self.btn_close)
 
         main_layout.addWidget(header)
 
-        # Barra de progreso
+        # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.setFixedHeight(4)
@@ -405,18 +405,18 @@ class VpnManagerMainWindow(QMainWindow):
 
         self.tab_connections = QWidget()
         self.init_connections_tab()
-        self.tabs.addTab(self.tab_connections, "🌐 Conexiones (Sedes)")
+        self.tabs.addTab(self.tab_connections, "🌐 Connections (Sites)")
 
         self.tab_shared = QWidget()
         self.init_shared_tab()
-        self.tabs.addTab(self.tab_shared, "⚙️ Campos Compartidos")
+        self.tabs.addTab(self.tab_shared, "⚙️ Shared Settings")
 
         self.tab_diag = QWidget()
         self.init_diag_tab()
-        self.tabs.addTab(self.tab_diag, "📊 Diagnóstico y Logs")
+        self.tabs.addTab(self.tab_diag, "📊 Diagnostics & Logs")
 
         # Footer
-        self.lbl_footer_status = QLabel("Listo. Haz clic en una sede para conectar o presiona su número.")
+        self.lbl_footer_status = QLabel("Ready. Click a site card to connect or press its index number.")
         self.lbl_footer_status.setStyleSheet("color: #64748b; font-size: 12px; font-weight: 500;")
         main_layout.addWidget(self.lbl_footer_status)
 
@@ -426,26 +426,26 @@ class VpnManagerMainWindow(QMainWindow):
         layout.setSpacing(12)
 
         top_bar = QHBoxLayout()
-        desc = QLabel("Elige una sede para conectarte de inmediato, o gestiona tus perfiles:")
+        desc = QLabel("Choose a site to connect immediately, or manage your connection profiles:")
         desc.setStyleSheet("color: #cbd5e1; font-weight: 600;")
         top_bar.addWidget(desc)
         top_bar.addStretch()
 
-        btn_import = QPushButton("📥 Importar Bundle")
+        btn_import = QPushButton("📥 Import Bundle")
         btn_import.clicked.connect(self.import_profiles_file)
         top_bar.addWidget(btn_import)
 
-        btn_export = QPushButton("📤 Exportar")
+        btn_export = QPushButton("📤 Export")
         btn_export.clicked.connect(self.export_profiles_file)
         top_bar.addWidget(btn_export)
 
-        btn_add = QPushButton("➕ Nueva Sede")
+        btn_add = QPushButton("➕ New Site")
         btn_add.setProperty("class", "primary")
         btn_add.clicked.connect(self.add_connection)
         top_bar.addWidget(btn_add)
         layout.addLayout(top_bar)
 
-        # Scroll para tarjetas
+        # Scroll area for cards
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet("background: transparent; border: none;")
@@ -476,7 +476,7 @@ class VpnManagerMainWindow(QMainWindow):
         if not connections:
             empty_box = QVBoxLayout()
             empty_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl_empty = QLabel("No hay sedes configuradas. Haz clic en '➕ Nueva Sede' o '📥 Importar Bundle'.")
+            lbl_empty = QLabel("No sites configured yet. Click '➕ New Site' or '📥 Import Bundle' to get started.")
             lbl_empty.setStyleSheet("color: #64748b; font-size: 14px; padding: 40px;")
             empty_box.addWidget(lbl_empty)
             self.conn_layout.addLayout(empty_box)
@@ -507,7 +507,7 @@ class VpnManagerMainWindow(QMainWindow):
 
             # Top row
             top_row = QHBoxLayout()
-            lbl_tag = QLabel(f"SEDE #{idx+1}")
+            lbl_tag = QLabel(f"SITE #{idx+1}")
             lbl_tag.setStyleSheet(f"""
                 background-color: rgba({accent.red()}, {accent.green()}, {accent.blue()}, 0.18);
                 color: {accent.name()};
@@ -521,7 +521,7 @@ class VpnManagerMainWindow(QMainWindow):
             top_row.addStretch()
 
             if is_active:
-                lbl_status = QLabel("● ACTIVA AHORA")
+                lbl_status = QLabel("● ACTIVE NOW")
                 lbl_status.setStyleSheet("""
                     background-color: rgba(16, 185, 129, 0.25);
                     color: #10b981;
@@ -532,7 +532,7 @@ class VpnManagerMainWindow(QMainWindow):
                     border: 1px solid #10b981;
                 """)
             else:
-                lbl_status = QLabel("○ DISPONIBLE")
+                lbl_status = QLabel("○ AVAILABLE")
                 lbl_status.setStyleSheet("""
                     background-color: rgba(148, 163, 184, 0.1);
                     color: #94a3b8;
@@ -551,7 +551,7 @@ class VpnManagerMainWindow(QMainWindow):
             lbl_name.setStyleSheet("font-size: 21px; font-weight: 800; color: #ffffff;")
             title_box.addWidget(lbl_name)
 
-            lbl_desc = QLabel(conn.get("description", "Gateway de acceso VPN"))
+            lbl_desc = QLabel(conn.get("description", "Corporate VPN Gateway"))
             lbl_desc.setStyleSheet("color: #94a3b8; font-size: 12px; font-weight: 500;")
             title_box.addWidget(lbl_desc)
             card_layout.addLayout(title_box)
@@ -575,12 +575,12 @@ class VpnManagerMainWindow(QMainWindow):
             specs_layout.setSpacing(6)
 
             dns_info = conn.get("custom_dns") if conn.get("use_custom_dns") else shared_dns
-            dns_type = "⚡ DNS Propios" if conn.get("use_custom_dns") else "🌐 DNS Compartidos"
+            dns_type = "⚡ Custom DNS" if conn.get("use_custom_dns") else "🌐 Shared DNS"
 
             specs = [
                 ("🌐 Gateway", gw, True),
-                (dns_type, dns_info or "Por defecto", False),
-                ("👤 Usuario", shared_user or "No definido", False),
+                (dns_type, dns_info or "Default", False),
+                ("👤 User", shared_user or "Not set", False),
             ]
 
             for label, val, is_hl in specs:
@@ -602,7 +602,7 @@ class VpnManagerMainWindow(QMainWindow):
             card_layout.addStretch()
 
             # Connect Button
-            btn_conn = QPushButton(f"Conectar a {conn.get('name')}" if not is_active else f"Reconectar a {conn.get('name')}")
+            btn_conn = QPushButton(f"Connect to {conn.get('name')}" if not is_active else f"Reconnect to {conn.get('name')}")
             btn_conn.setFixedHeight(42)
             btn_conn.setCursor(Qt.CursorShape.PointingHandCursor)
             if is_active:
@@ -635,7 +635,7 @@ class VpnManagerMainWindow(QMainWindow):
             card_layout.addWidget(btn_conn)
 
             # Shortcut hint
-            lbl_hint = QLabel(f"Presiona tecla [ {idx+1} ]")
+            lbl_hint = QLabel(f"Press Key [ {idx+1} ]")
             lbl_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl_hint.setStyleSheet("color: #64748b; font-size: 11px; font-weight: 600;")
             card_layout.addWidget(lbl_hint)
@@ -644,13 +644,13 @@ class VpnManagerMainWindow(QMainWindow):
             actions_row = QHBoxLayout()
             actions_row.setSpacing(8)
 
-            btn_edit = QPushButton("✏️ Editar")
+            btn_edit = QPushButton("✏️ Edit")
             btn_edit.setFixedHeight(34)
             btn_edit.clicked.connect(lambda checked, c=conn: self.edit_connection(c))
             actions_row.addWidget(btn_edit)
 
             btn_del = QPushButton("🗑️")
-            btn_del.setToolTip("Eliminar conexión")
+            btn_del.setToolTip("Delete connection")
             btn_del.setFixedSize(36, 34)
             btn_del.clicked.connect(lambda checked, c_id=cid: self.delete_connection(c_id))
             actions_row.addWidget(btn_del)
@@ -664,9 +664,9 @@ class VpnManagerMainWindow(QMainWindow):
         layout.setSpacing(16)
 
         banner = QLabel(
-            "📌 <b>Campos Compartidos (Globales):</b><br>"
-            "Estos campos son comunes para todas las sedes que no tengan una configuración propia.<br>"
-            "Si cambian los DNS institucionales o tu contraseña, edítalos aquí y se sincronizarán de inmediato."
+            "📌 <b>Shared Settings (Global):</b><br>"
+            "These fields apply to all connection profiles that do not define custom overrides.<br>"
+            "When corporate DNS servers or credentials change, update them here once to synchronize everywhere."
         )
         banner.setWordWrap(True)
         banner.setStyleSheet("""
@@ -702,34 +702,34 @@ class VpnManagerMainWindow(QMainWindow):
 
         shared = self.config.get("shared", {})
 
-        form_layout.addWidget(QLabel("🌐 Servidores DNS Compartidos (separados por coma):"))
+        form_layout.addWidget(QLabel("🌐 Shared DNS Servers (comma-separated):"))
         dns_input_box = QHBoxLayout()
         self.txt_shared_dns = QLineEdit(shared.get("dns_servers", ""))
-        self.txt_shared_dns.setPlaceholderText("Ej. 10.0.0.10, 10.0.0.11")
+        self.txt_shared_dns.setPlaceholderText("e.g. 10.0.0.10, 10.0.0.11")
         dns_input_box.addWidget(self.txt_shared_dns)
 
-        btn_restore_dns = QPushButton("Restaurar")
+        btn_restore_dns = QPushButton("Reset Example")
         btn_restore_dns.clicked.connect(lambda: self.txt_shared_dns.setText("10.0.0.10, 10.0.0.11"))
         dns_input_box.addWidget(btn_restore_dns)
         form_layout.addLayout(dns_input_box)
 
-        form_layout.addWidget(QLabel("🏢 Dominios de Búsqueda (Split-DNS):"))
+        form_layout.addWidget(QLabel("🏢 Search Domains (Split-DNS):"))
         self.txt_search_domains = QLineEdit(shared.get("search_domains", ""))
-        self.txt_search_domains.setPlaceholderText("Ej. corp.internal, company.com")
+        self.txt_search_domains.setPlaceholderText("e.g. corp.internal, company.com")
         form_layout.addWidget(self.txt_search_domains)
 
-        form_layout.addWidget(QLabel("👤 Usuario VPN:"))
+        form_layout.addWidget(QLabel("👤 VPN Username:"))
         self.txt_shared_user = QLineEdit(shared.get("user_name", ""))
-        self.txt_shared_user.setPlaceholderText("Tu usuario institucional")
+        self.txt_shared_user.setPlaceholderText("Your corporate user identity")
         form_layout.addWidget(self.txt_shared_user)
 
-        form_layout.addWidget(QLabel("🔑 Contraseña VPN:"))
+        form_layout.addWidget(QLabel("🔑 VPN Password:"))
         pwd_box = QHBoxLayout()
         self.txt_shared_pwd = QLineEdit(shared.get("password", ""))
         self.txt_shared_pwd.setEchoMode(QLineEdit.EchoMode.Password)
         pwd_box.addWidget(self.txt_shared_pwd)
 
-        self.btn_show_pwd = QPushButton("👁️ Mostrar")
+        self.btn_show_pwd = QPushButton("👁️ Show")
         self.btn_show_pwd.setCheckable(True)
         self.btn_show_pwd.toggled.connect(self.toggle_pwd_visibility)
         pwd_box.addWidget(self.btn_show_pwd)
@@ -737,7 +737,7 @@ class VpnManagerMainWindow(QMainWindow):
 
         adv_box = QHBoxLayout()
         t_box = QVBoxLayout()
-        t_box.addWidget(QLabel("Tipo de Túnel:"))
+        t_box.addWidget(QLabel("Tunnel Type:"))
         self.cb_tunnel = QComboBox()
         self.cb_tunnel.addItems(["ssl", "ipsec"])
         self.cb_tunnel.setCurrentText(shared.get("tunnel_type", "ssl"))
@@ -745,7 +745,7 @@ class VpnManagerMainWindow(QMainWindow):
         adv_box.addLayout(t_box)
 
         l_box = QVBoxLayout()
-        l_box.addWidget(QLabel("Método de Login:"))
+        l_box.addWidget(QLabel("Login Method:"))
         self.cb_login = QComboBox()
         self.cb_login.addItems(["vpn", "standard"])
         self.cb_login.setCurrentText(shared.get("login_type", "vpn"))
@@ -753,13 +753,13 @@ class VpnManagerMainWindow(QMainWindow):
         adv_box.addLayout(l_box)
         form_layout.addLayout(adv_box)
 
-        self.chk_ignore_cert = QCheckBox("Ignorar advertencias de certificados TLS (Requerido si el Gateway usa IPs internas en SAN)")
+        self.chk_ignore_cert = QCheckBox("Ignore TLS certificate warnings (Required if gateway SAN lacks internal IP match)")
         self.chk_ignore_cert.setChecked(shared.get("ignore_server_cert", True))
         form_layout.addWidget(self.chk_ignore_cert)
 
         layout.addWidget(form_frame)
 
-        btn_save_shared = QPushButton("💾 Guardar Campos Compartidos")
+        btn_save_shared = QPushButton("💾 Save Shared Settings")
         btn_save_shared.setProperty("class", "primary")
         btn_save_shared.setFixedHeight(42)
         btn_save_shared.clicked.connect(self.save_shared_fields)
@@ -772,15 +772,15 @@ class VpnManagerMainWindow(QMainWindow):
         layout.setSpacing(14)
 
         btn_row = QHBoxLayout()
-        btn_doctor = QPushButton("🩺 Diagnóstico del Sistema (Doctor)")
+        btn_doctor = QPushButton("🩺 System Diagnostics (Doctor)")
         btn_doctor.clicked.connect(self.run_doctor_test)
         btn_row.addWidget(btn_doctor)
 
-        btn_routes = QPushButton("🛣️ Ver Rutas del Kernel")
+        btn_routes = QPushButton("🛣️ View Kernel Routes")
         btn_routes.clicked.connect(self.check_routes)
         btn_row.addWidget(btn_routes)
 
-        btn_logs = QPushButton("📜 Ver Últimos Logs")
+        btn_logs = QPushButton("📜 View Latest Logs")
         btn_logs.clicked.connect(self.load_snx_logs)
         btn_row.addWidget(btn_logs)
         btn_row.addStretch()
@@ -788,16 +788,16 @@ class VpnManagerMainWindow(QMainWindow):
 
         self.txt_output = QTextEdit()
         self.txt_output.setReadOnly(True)
-        self.txt_output.setPlaceholderText("Los resultados de diagnóstico y trazas se mostrarán aquí...")
+        self.txt_output.setPlaceholderText("Diagnostic results and system trace output will appear here...")
         layout.addWidget(self.txt_output)
 
     def toggle_pwd_visibility(self, checked):
         if checked:
             self.txt_shared_pwd.setEchoMode(QLineEdit.EchoMode.Normal)
-            self.btn_show_pwd.setText("🔒 Ocultar")
+            self.btn_show_pwd.setText("🔒 Hide")
         else:
             self.txt_shared_pwd.setEchoMode(QLineEdit.EchoMode.Password)
-            self.btn_show_pwd.setText("👁️ Mostrar")
+            self.btn_show_pwd.setText("👁️ Show")
 
     def save_shared_fields(self):
         shared = self.config.setdefault("shared", {})
@@ -811,9 +811,9 @@ class VpnManagerMainWindow(QMainWindow):
 
         save_config(self.config)
         self.render_connection_cards()
-        self.lbl_footer_status.setText("✅ Campos compartidos guardados correctamente.")
+        self.lbl_footer_status.setText("✅ Shared settings saved successfully.")
         self.lbl_footer_status.setStyleSheet("color: #10b981; font-weight: 700;")
-        QMessageBox.information(self, "Campos Compartidos", "Configuración compartida guardada con éxito.")
+        QMessageBox.information(self, "Shared Settings", "Global shared configuration saved successfully.")
 
     def add_connection(self):
         shared_dns = self.config.get("shared", {}).get("dns_servers", "")
@@ -838,8 +838,8 @@ class VpnManagerMainWindow(QMainWindow):
         conn = get_connection_by_id(self.config, conn_id)
         name = conn.get("name", conn_id) if conn else conn_id
         reply = QMessageBox.question(
-            self, "Confirmar eliminación",
-            f"¿Estás seguro de que deseas eliminar la sede '{name}'?",
+            self, "Confirm Deletion",
+            f"Are you sure you want to delete the site profile '{name}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
@@ -848,29 +848,29 @@ class VpnManagerMainWindow(QMainWindow):
             self.render_connection_cards()
 
     def import_profiles_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Importar Perfiles JSON", str(Path.home()), "Archivos JSON (*.json)")
+        file_path, _ = QFileDialog.getOpenFileName(self, "Import Profiles JSON", str(Path.home()), "JSON Files (*.json)")
         if file_path:
             if import_bundle(self.config, Path(file_path)):
                 self.config = load_config()
                 self.render_connection_cards()
-                QMessageBox.information(self, "Importación", "Perfiles importados exitosamente.")
+                QMessageBox.information(self, "Import", "Profiles imported successfully.")
             else:
-                QMessageBox.critical(self, "Error", "No se pudo importar el archivo especificado.")
+                QMessageBox.critical(self, "Error", "Failed to import the specified profile bundle.")
 
     def export_profiles_file(self):
-        file_path, _ = QFileDialog.getSaveFileName(self, "Exportar Perfiles JSON", str(Path.home() / "snx-profiles-bundle.json"), "Archivos JSON (*.json)")
+        file_path, _ = QFileDialog.getSaveFileName(self, "Export Profiles JSON", str(Path.home() / "snx-profiles-bundle.json"), "JSON Files (*.json)")
         if file_path:
             if export_bundle(self.config, Path(file_path)):
-                QMessageBox.information(self, "Exportación", "Perfiles exportados exitosamente.")
+                QMessageBox.information(self, "Export", "Profiles exported successfully.")
             else:
-                QMessageBox.critical(self, "Error", "No se pudo exportar el archivo.")
+                QMessageBox.critical(self, "Error", "Failed to export profile bundle.")
 
     def do_connect(self, conn_id):
         conn = get_connection_by_id(self.config, conn_id)
         name = conn.get("name", conn_id) if conn else conn_id
         self.progress_bar.show()
-        self.status_badge.setText(f"⏳ Conectando...")
-        self.lbl_footer_status.setText(f"Conectando a {name}... Estableciendo túnel seguro.")
+        self.status_badge.setText("⏳ Connecting...")
+        self.lbl_footer_status.setText(f"Connecting to {name}... Establishing secure tunnel.")
         self.lbl_footer_status.setStyleSheet("color: #38bdf8; font-weight: 700;")
         self.worker = AsyncWorker(action="connect", profile_id=conn_id)
         self.worker.finished_signal.connect(self.on_worker_finished)
@@ -878,8 +878,8 @@ class VpnManagerMainWindow(QMainWindow):
 
     def do_disconnect(self):
         self.progress_bar.show()
-        self.status_badge.setText("⏳ Desconectando...")
-        self.lbl_footer_status.setText("Desconectando el túnel VPN...")
+        self.status_badge.setText("⏳ Disconnecting...")
+        self.lbl_footer_status.setText("Disconnecting VPN tunnel...")
         self.worker = AsyncWorker(action="disconnect")
         self.worker.finished_signal.connect(self.on_worker_finished)
         self.worker.start()
@@ -896,12 +896,12 @@ class VpnManagerMainWindow(QMainWindow):
         else:
             self.lbl_footer_status.setText(f"❌ {message}")
             self.lbl_footer_status.setStyleSheet("color: #f87171; font-weight: 700;")
-            QMessageBox.critical(self, "Estado de Conexión", message)
+            QMessageBox.critical(self, "Connection Status", message)
 
     def refresh_status(self):
         st = self.backend.get_status()
         if st.get("connected"):
-            name = st.get("active_name") or "VPN Conectada"
+            name = st.get("active_name") or "VPN Connected"
             ip = st.get("ip") or ""
             self.status_badge.setText(f"🟢 {name.upper()} ({ip})")
             self.status_badge.setStyleSheet("""
@@ -914,7 +914,7 @@ class VpnManagerMainWindow(QMainWindow):
             """)
             self.btn_disconnect.setEnabled(True)
         else:
-            self.status_badge.setText("⚪ DESCONECTADO")
+            self.status_badge.setText("⚪ DISCONNECTED")
             self.status_badge.setStyleSheet("""
                 background-color: #161c28;
                 color: #94a3b8;
@@ -948,27 +948,26 @@ class VpnManagerMainWindow(QMainWindow):
 
     def check_routes(self):
         self.txt_output.clear()
-        self.txt_output.append("=== Rutas activas del Kernel Linux ===\n")
+        self.txt_output.append("=== Active Linux Kernel Routes ===\n")
         import subprocess
         try:
             out = subprocess.check_output(["ip", "route", "show"], text=True)
             self.txt_output.append(out)
         except Exception as e:
-            self.txt_output.append(f"Error al leer rutas: {e}")
+            self.txt_output.append(f"Error querying routes: {e}")
 
     def load_snx_logs(self):
         self.txt_output.clear()
-        self.txt_output.append("=== Últimas 40 líneas de /var/log/snx-rs.log ===\n")
+        self.txt_output.append("=== Last 40 lines of /var/log/snx-rs.log ===\n")
         import subprocess
         try:
             out = subprocess.check_output(["sudo", "-n", "tail", "-n", "40", "/var/log/snx-rs.log"], text=True)
             self.txt_output.append(out)
         except Exception as e:
-            self.txt_output.append(f"Error al leer log: {e}")
+            self.txt_output.append(f"Error reading log file: {e}")
 
 
 def launch_gui():
-    # Prevenir duplicados
     lock_file = "/tmp/snx-manager.lock"
     try:
         lock_fd = open(lock_file, "w")

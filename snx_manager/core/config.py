@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 snx_manager.core.config
-Módulo de gestión declarativa de perfiles y configuración con guardado atómico.
-Diseñado 100% sobre la biblioteca estándar para portabilidad universal.
+Declarative profile and configuration management module with atomic persistence.
+Designed 100% on the standard library for universal Linux portability.
 """
 
 import os
@@ -20,7 +20,7 @@ DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "profiles.json"
 
 
 def get_default_config() -> Dict[str, Any]:
-    """Retorna la estructura base inicial cuando no existe configuración previa."""
+    """Returns the base initial structure when no prior configuration exists."""
     return {
         "version": CURRENT_SCHEMA_VERSION,
         "active_id": "",
@@ -38,12 +38,12 @@ def get_default_config() -> Dict[str, Any]:
 
 
 def migrate_config(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Pipeline de migración para versiones futuras del esquema."""
+    """Migration pipeline for future schema versions."""
     version = data.get("version", "0.9.0")
     if version == CURRENT_SCHEMA_VERSION:
         return data
 
-    # Migraciones incrementales si se requieren
+    # Incremental migrations
     data["version"] = CURRENT_SCHEMA_VERSION
     if "shared" not in data:
         data["shared"] = get_default_config()["shared"]
@@ -53,7 +53,7 @@ def migrate_config(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
-    """Carga y valida el archivo de configuración con migración automática."""
+    """Loads and validates configuration file with automatic migration."""
     path = config_path or DEFAULT_CONFIG_FILE
     if not path.exists():
         cfg = get_default_config()
@@ -65,14 +65,14 @@ def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
             raw_data = json.load(f)
             return migrate_config(raw_data)
     except Exception as e:
-        sys.stderr.write(f"[WARN] Error al leer {path}: {e}. Retornando configuración por defecto.\n")
+        sys.stderr.write(f"[WARN] Error reading {path}: {e}. Returning default configuration.\n")
         return get_default_config()
 
 
 def save_config(data: Dict[str, Any], config_path: Optional[Path] = None) -> bool:
     """
-    Persistencia atómica (Zero-Corruption Pattern):
-    Escribe en archivo temporal en el mismo sistema de archivos y renombra con os.replace.
+    Atomic persistence (Zero-Corruption Pattern):
+    Writes to temporary file on the same filesystem and renames atomically with os.replace.
     """
     path = config_path or DEFAULT_CONFIG_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -83,18 +83,18 @@ def save_config(data: Dict[str, Any], config_path: Optional[Path] = None) -> boo
         with tempfile.NamedTemporaryFile("w", dir=str(path.parent), delete=False, encoding="utf-8") as tf:
             json.dump(data, tf, indent=2, ensure_ascii=False)
             temp_name = tf.name
-        
-        # Permisos restringidos 0600 (solo lectura/escritura del usuario)
+
+        # Restrict permissions to 0600 (owner read/write only)
         os.chmod(temp_name, 0o600)
         os.replace(temp_name, path)
         return True
     except Exception as e:
-        sys.stderr.write(f"[ERROR] Falló la persistencia atómica en {path}: {e}\n")
+        sys.stderr.write(f"[ERROR] Atomic persistence failed at {path}: {e}\n")
         return False
 
 
 def get_connection_by_id(config: Dict[str, Any], conn_id: str) -> Optional[Dict[str, Any]]:
-    """Busca una conexión por su identificador único."""
+    """Finds a connection by its unique ID."""
     for c in config.get("connections", []):
         if c.get("id") == conn_id:
             return c
@@ -102,14 +102,14 @@ def get_connection_by_id(config: Dict[str, Any], conn_id: str) -> Optional[Dict[
 
 
 def get_effective_dns(config: Dict[str, Any], conn: Dict[str, Any]) -> str:
-    """Resuelve los DNS efectivos aplicando la precedencia (Específicos > Compartidos)."""
+    """Resolves effective DNS applying precedence (Specific > Shared)."""
     if conn.get("use_custom_dns") and conn.get("custom_dns", "").strip():
         return conn["custom_dns"].strip()
     return config.get("shared", {}).get("dns_servers", "").strip()
 
 
 def export_bundle(config: Dict[str, Any], output_path: Path, exclude_passwords: bool = True) -> bool:
-    """Exporta perfiles en un bundle compartible para equipos o despliegues."""
+    """Exports profiles into a shareable bundle for teams or automated deployments."""
     bundle = {
         "bundle_version": CURRENT_SCHEMA_VERSION,
         "shared": dict(config.get("shared", {})),
@@ -124,12 +124,12 @@ def export_bundle(config: Dict[str, Any], output_path: Path, exclude_passwords: 
             json.dump(bundle, f, indent=2, ensure_ascii=False)
         return True
     except Exception as e:
-        sys.stderr.write(f"[ERROR] Falló al exportar bundle: {e}\n")
+        sys.stderr.write(f"[ERROR] Failed to export bundle: {e}\n")
         return False
 
 
 def import_bundle(config: Dict[str, Any], bundle_path: Path, merge: bool = True, config_path: Optional[Path] = None) -> bool:
-    """Importa conexiones y campos compartidos desde un bundle exportado."""
+    """Imports connections and shared settings from an exported bundle."""
     if not bundle_path.exists():
         return False
     try:
@@ -143,7 +143,7 @@ def import_bundle(config: Dict[str, Any], bundle_path: Path, merge: bool = True,
         for new_conn in bundle_data.get("connections", []):
             cid = new_conn.get("id")
             if cid in existing_ids:
-                # Actualizar existente
+                # Update existing profile
                 for idx, c in enumerate(config["connections"]):
                     if c.get("id") == cid:
                         config["connections"][idx] = new_conn
@@ -152,7 +152,7 @@ def import_bundle(config: Dict[str, Any], bundle_path: Path, merge: bool = True,
                 config.setdefault("connections", []).append(new_conn)
                 existing_ids.add(cid)
 
-        # Actualizar campos compartidos si estaban vacíos en config
+        # Update shared fields if empty in current config
         bundle_shared = bundle_data.get("shared", {})
         config_shared = config.setdefault("shared", {})
         for k, v in bundle_shared.items():
@@ -161,5 +161,5 @@ def import_bundle(config: Dict[str, Any], bundle_path: Path, merge: bool = True,
 
         return save_config(config, config_path)
     except Exception as e:
-        sys.stderr.write(f"[ERROR] Falló al importar bundle: {e}\n")
+        sys.stderr.write(f"[ERROR] Failed to import bundle: {e}\n")
         return False

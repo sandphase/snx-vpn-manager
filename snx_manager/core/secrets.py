@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 snx_manager.core.secrets
-Capa de abstracción segura para almacenamiento de credenciales.
-Integra la Secret Service API de FreeDesktop (GNOME Keyring / KWallet) con
-fallback determinista para entornos de servidor (Variables de entorno y archivos 0600).
+Secure credential storage abstraction layer.
+Integrates FreeDesktop Secret Service API (GNOME Keyring / KWallet) with
+deterministic fallbacks for headless servers (Environment variables and 0600 files).
 """
 
 import os
@@ -15,7 +15,7 @@ SERVICE_NAME = "snx-vpn-manager"
 
 
 class SecretManager:
-    """Gestor de credenciales con soporte para Keyring del SO y Servidor Headless."""
+    """Credential manager supporting OS Keyring and Headless Server environments."""
 
     def __init__(self):
         self._keyring_available = self._check_keyring()
@@ -23,7 +23,6 @@ class SecretManager:
     def _check_keyring(self) -> bool:
         try:
             import keyring
-            # Intentar verificar si hay un backend activo funcional
             backend = keyring.get_keyring()
             if "fail" in backend.__class__.__name__.lower():
                 return False
@@ -32,15 +31,15 @@ class SecretManager:
             return False
 
     def get_password(self, username: str, profile_id: str = "shared") -> Optional[str]:
-        """Recupera la contraseña con prioridad: Entorno > Keyring del SO > Configuración."""
-        # 1. Prioridad máxima en servidores: Variable de entorno
+        """Retrieves password with priority: Environment > OS Keyring > Configuration."""
+        # 1. Maximum priority on servers: Environment variable
         env_var = f"SNX_PASSWORD_{profile_id.upper().replace('-', '_')}"
         if env_var in os.environ:
             return os.environ[env_var]
         if "SNX_PASSWORD" in os.environ:
             return os.environ["SNX_PASSWORD"]
 
-        # 2. Keyring del Sistema Operativo
+        # 2. Operating System Keyring
         if self._keyring_available and username:
             try:
                 import keyring
@@ -54,7 +53,7 @@ class SecretManager:
         return None
 
     def store_password(self, username: str, password: str, profile_id: str = "shared") -> bool:
-        """Almacena la contraseña en el Keyring del SO si está disponible."""
+        """Stores password in OS Keyring if available."""
         if self._keyring_available and username and password:
             try:
                 import keyring
@@ -66,7 +65,7 @@ class SecretManager:
         return False
 
     def delete_password(self, username: str, profile_id: str = "shared") -> bool:
-        """Elimina una credencial guardada."""
+        """Deletes a saved credential."""
         if self._keyring_available and username:
             try:
                 import keyring

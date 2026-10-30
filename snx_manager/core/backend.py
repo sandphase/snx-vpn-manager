@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 snx_manager.core.backend
-Motor de ejecución del túnel VPN para snx-rs.
-Maneja el ciclo de vida del proceso, espera asíncrona de interfaz, integración
-con RouteManager y DnsManager, y desconexión segura con purga de recursos.
+VPN tunnel execution engine for snx-rs.
+Manages process lifecycle, asynchronous interface polling, integration
+with RouteManager and DnsManager, and safe disconnection with state purging.
 """
 
 import os
@@ -25,7 +25,7 @@ SNX_LOG_PATH = Path("/var/log/snx-rs.log")
 
 
 class VpnBackend:
-    """Controlador de bajo nivel para túneles Check Point mediante snx-rs."""
+    """Low-level controller for Check Point tunnels via snx-rs."""
 
     def __init__(self, interface: str = "snx-vpn"):
         self.interface = interface
@@ -34,7 +34,7 @@ class VpnBackend:
         self.secret_mgr = SecretManager()
 
     def get_status(self) -> Dict[str, Any]:
-        """Consulta el estado del túnel en tiempo real."""
+        """Queries real-time tunnel status."""
         status = {
             "connected": False,
             "interface": self.interface,
@@ -45,7 +45,7 @@ class VpnBackend:
             "dns_servers": []
         }
 
-        # 1. Verificar si existe la interfaz de red
+        # 1. Check if network interface exists
         res = run_cmd(["ip", "-4", "-br", "addr", "show", "dev", self.interface])
         if res.returncode == 0 and res.stdout.strip():
             parts = res.stdout.split()
@@ -53,7 +53,7 @@ class VpnBackend:
                 status["connected"] = True
                 status["ip"] = parts[2].split("/")[0]
 
-        # 2. Leer configuración activa de /etc/snx-rs/snx-rs.conf
+        # 2. Read active configuration from /etc/snx-rs/snx-rs.conf
         cfg = load_config()
         if SNX_CONF_PATH.exists():
             try:
@@ -68,7 +68,7 @@ class VpnBackend:
             except Exception:
                 pass
 
-        # 3. Emparejar con perfiles guardados
+        # 3. Match with saved profiles
         for conn in cfg.get("connections", []):
             if status["gateway"] and conn.get("gateway") == status["gateway"]:
                 status["active_id"] = conn.get("id")
@@ -76,27 +76,27 @@ class VpnBackend:
                 break
 
         if not status["active_name"] and status["connected"]:
-            status["active_name"] = f"Gateway {status['gateway']}" if status["gateway"] else "Túnel Activo"
+            status["active_name"] = f"Gateway {status['gateway']}" if status["gateway"] else "Active Tunnel"
 
         return status
 
     def connect(self, profile_id: str, timeout_seconds: int = 20) -> Tuple[bool, str]:
-        """Establece la conexión VPN para el perfil indicado."""
+        """Establishes VPN connection for specified profile."""
         cfg = load_config()
         conn = get_connection_by_id(cfg, profile_id)
         if not conn:
-            return False, f"Perfil con ID '{profile_id}' no encontrado."
+            return False, f"Profile with ID '{profile_id}' not found."
 
         shared = cfg.get("shared", {})
         gateway = conn.get("gateway", "").strip()
         if not gateway:
-            return False, "El perfil no especifica una dirección de Gateway válida."
+            return False, "Profile does not specify a valid Gateway address."
 
-        # Resolver usuario y contraseña
+        # Resolve username and password
         user = shared.get("user_name", "")
         pwd = self.secret_mgr.get_password(user, profile_id) or shared.get("password", "")
 
-        # Codificación base64 para el archivo de configuración de snx-rs
+        # Base64 encoding for snx-rs configuration file
         try:
             b64_pass = base64.b64encode(pwd.encode()).decode()
         except Exception:
@@ -109,7 +109,7 @@ class VpnBackend:
         login_type = shared.get("login_type", "vpn")
         ignore_cert = "true" if shared.get("ignore_server_cert", True) else "false"
 
-        # 1. Crear contenido del archivo de configuración
+        # 1. Build configuration file content
         conf_content = (
             f"server-name={gateway}\n"
             f"login-type={login_type}\n"
@@ -121,10 +121,10 @@ class VpnBackend:
             f"dns-servers={effective_dns}\n"
         )
 
-        # 2. Desconectar túnel previo si existiera
+        # 2. Disconnect previous tunnel if present
         self.disconnect(notify=False)
 
-        # 3. Guardar configuración en /etc/snx-rs/snx-rs.conf de forma segura
+        # 3. Securely save configuration to /etc/snx-rs/snx-rs.conf
         tmp_conf = "/tmp/snx-rs.conf.tmp"
         try:
             with open(tmp_conf, "w") as f:
@@ -134,9 +134,9 @@ class VpnBackend:
             run_root_cmd(["chmod", "600", str(SNX_CONF_PATH)])
             os.remove(tmp_conf)
         except Exception as e:
-            return False, f"Error al escribir {SNX_CONF_PATH}: {e}"
+            return False, f"Error writing {SNX_CONF_PATH}: {e}"
 
-        # 4. Iniciar servicio snx-rs mediante systemd-run
+        # 4. Start snx-rs via systemd-run
         snx_bin = shutil.which("snx-rs") or "/usr/bin/snx-rs"
         start_cmd = [
             "systemd-run",
@@ -153,9 +153,9 @@ class VpnBackend:
         ]
         res = run_root_cmd(start_cmd)
         if res.returncode != 0:
-            return False, f"No se pudo arrancar la unidad systemd para snx-rs: {res.stderr}"
+            return False, f"Could not start systemd unit for snx-rs: {res.stderr}"
 
-        # 5. Esperar a que la interfaz suba en el kernel
+        # 5. Wait for network interface to appear in kernel
         interface_ready = False
         for _ in range(timeout_seconds):
             check = run_cmd(["ip", "link", "show", "dev", self.interface])
@@ -166,60 +166,60 @@ class VpnBackend:
 
         if not interface_ready:
             self.disconnect(notify=False)
-            return False, "Tiempo de espera agotado: La interfaz del túnel no subió (revisa credenciales o log)."
+            return False, "Connection timeout: Tunnel interface did not come up (verify credentials or logs)."
 
-        # 6. Inyectar rutas host /32 para los DNS (evita colisiones con Docker)
+        # 6. Inject /32 host routes for DNS (prevents Docker subnet hijacking)
         for dns in dns_list:
             self.route_mgr.inject_host_route_32(dns)
 
-        # 7. Inyectar rutas corporativas personalizadas si existen
+        # 7. Inject custom corporate routes if specified
         custom_routes = conn.get("custom_routes", [])
         if custom_routes:
             self.route_mgr.setup_pbr_table(custom_routes)
 
-        # 8. Aplicar DNS mediante el gestor activo (Split-DNS selectivo)
+        # 8. Apply DNS through active manager (Selective Split-DNS)
         self.dns_mgr.apply_dns(dns_list, search_domains=search_domains, split_dns=True)
 
-        # 9. Actualizar perfil activo en la configuración
+        # 9. Update active profile in configuration
         cfg["active_id"] = profile_id
         save_config(cfg)
 
-        # Notificación nativa
+        # Desktop notification
         self._send_notification(
-            "VPN Conectada ✅",
-            f"Sede: {conn.get('name')}\nGateway: {gateway}",
+            "VPN Connected ✅",
+            f"Profile: {conn.get('name')}\nGateway: {gateway}",
             icon="network-vpn"
         )
 
-        return True, f"Conexión exitosa a {conn.get('name')}."
+        return True, f"Successfully connected to {conn.get('name')}."
 
     def disconnect(self, notify: bool = True) -> bool:
-        """Detiene el túnel y realiza limpieza exhaustiva de red."""
-        # 1. Detener unidad de systemd
+        """Stops the tunnel and performs comprehensive network cleanup."""
+        # 1. Stop systemd units
         run_root_cmd(["systemctl", "stop", "snx-rs-vpn", "snx-rs"])
         run_root_cmd(["systemctl", "reset-failed", "snx-rs-vpn"])
 
-        # 2. Terminar procesos residuales
+        # 2. Terminate lingering processes
         run_root_cmd(["pkill", "-15", "-x", "snx-rs"])
         time.sleep(0.5)
         run_root_cmd(["pkill", "-9", "-x", "snx-rs"])
 
-        # 3. Revertir DNS
+        # 3. Revert DNS
         self.dns_mgr.revert_dns()
 
-        # 4. Limpiar rutas, reglas PBR, interfaces y estados XFRM del kernel
+        # 4. Clean routes, PBR rules, interfaces, and kernel XFRM states
         self.route_mgr.cleanup_all()
 
-        # 5. Limpiar sockets y temporales
+        # 5. Clean sockets and temp files
         run_root_cmd(["rm", "-f", "/var/tmp/*snx*", "/var/run/snx*", "/run/snx*"])
 
         if notify:
-            self._send_notification("VPN Desconectada 🔌", "El túnel seguro fue cerrado correctamente.", icon="network-vpn-disconnected")
+            self._send_notification("VPN Disconnected 🔌", "Secure tunnel closed cleanly.", icon="network-vpn-disconnected")
 
         return True
 
     def _send_notification(self, title: str, message: str, icon: str = "network-vpn"):
-        """Envía notificación de escritorio de forma segura si notify-send está presente."""
+        """Sends desktop notification safely if notify-send is present."""
         if shutil.which("notify-send"):
             try:
                 subprocess.run(["notify-send", "-i", icon, title, message], stderr=subprocess.DEVNULL)

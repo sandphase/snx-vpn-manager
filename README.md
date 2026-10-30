@@ -29,14 +29,14 @@ Connecting to Check Point Firewalls / Security Gateways on modern Linux systems 
   - Configures kernel modules (`modprobe tun`), least-privilege `sudoers` rules, systemd template services, and desktop launchers.
   - Automatically detects **Desktop** (GUI + Shortcuts) vs **Server** (Zero-GUI headless mode).
 
-- 🌐 **Shared Fields Architecture:**
-  - Common credentials (username, password, global DNS) are configured once in an isolated "Campos Compartidos" section.
+- 🌐 **Shared Settings Architecture:**
+  - Common credentials (username, password, global DNS) are configured once in an isolated "Shared Settings" section.
   - Individual connections (Datacenter, Branch Office, Cloud Gateway) can inherit shared DNS or define their own dedicated DNS resolvers.
 
 - 🖥️ **Modern Desktop GUI (PyQt6):**
   - Responsive card layout with real-time tunnel status (🟢 Active / ⚪ Disconnected).
   - One-click connect, disconnect, edit, add, and delete.
-  - Integrated pre-flight diagnostic tool ("Diagnóstico").
+  - Integrated pre-flight diagnostic tool ("Diagnostics").
   - Seamless dark theme inspired by modern system tools.
 
 - 🖧 **Server & Headless Friendly (CLI & TUI):**
@@ -106,16 +106,16 @@ snx-manager
     ║             🛡️  SNX CHECK POINT VPN MANAGER             ║
     ╚══════════════════════════════════════════════════════════╝
 
-Perfiles y Sedes Configuradas:
-  [1] Corporate HQ ● ACTIVO
+Configured Profiles and Sites:
+  [1] Corporate HQ ● ACTIVE
   [2] Branch Office ○
 
-Opciones disponibles:
-  [1] Conectar a un perfil
-  [2] Desconectar VPN activa
-  [3] Estado detallado de la conexión
-  [4] Diagnóstico del sistema (doctor)
-  [q] Salir
+Available Actions:
+  [1] Connect to a site
+  [2] Disconnect active VPN
+  [3] View detailed connection status
+  [4] Run system diagnostics (doctor)
+  [q] Exit
 ```
 
 ---
@@ -216,15 +216,15 @@ snx-manager doctor
 Example output:
 ```text
 ============================================================
-          🩺 DIAGNÓSTICO DEL SISTEMA (snx-manager doctor)    
+          🩺 SYSTEM DIAGNOSTICS (snx-manager doctor)        
 ============================================================
-  [OK] Cliente snx-rs: Presente (snx-rs 6.4.1)
-  [OK] Dispositivo Kernel: /dev/net/tun disponible
-  [OK] Herramientas de Red: iproute2 presente
-  [INFO] Subsistema DNS activo: systemd-resolved
-  [OK] Privilegios Root: sudo NOPASSWD configurado (Operación transparente)
+  [OK] snx-rs client: Present (snx-rs 6.4.1)
+  [OK] Kernel Device: /dev/net/tun available
+  [OK] Network Tools: iproute2 present
+  [INFO] Active DNS Subsystem: systemd-resolved
+  [OK] Root Privileges: sudo NOPASSWD configured (Transparent operation)
 ============================================================
-ESTADO GENERAL: ✅ El sistema está listo para operar.
+OVERALL STATUS: ✅ System is ready to operate.
 ```
 
 ---

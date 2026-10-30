@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# snx-vpn-toggle.sh — Helper para atajos de teclado globales (ej. Ctrl+Alt+C / Ctrl+Alt+D)
+# snx-vpn-toggle.sh — Helper for global keyboard shortcuts (e.g., Ctrl+Alt+C / Ctrl+Alt+D)
 set -euo pipefail
 
 ACTION="${1:-gui}"
@@ -20,7 +20,7 @@ case "$ACTION" in
     exec snx-manager disconnect
     ;;
   toggle)
-    # Si está conectado, desconecta. Si está desconectado, abre el selector visual.
+    # If connected, disconnect. If disconnected, open GUI manager.
     if snx-manager status --json 2>/dev/null | grep -q '"connected": true'; then
       exec snx-manager disconnect
     else
@@ -28,7 +28,7 @@ case "$ACTION" in
     fi
     ;;
   *)
-    echo "Uso: $0 [gui|connect <id>|disconnect|toggle]"
+    echo "Usage: $0 [gui|connect <id>|disconnect|toggle]"
     exit 1
     ;;
 esac
